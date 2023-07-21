@@ -1,14 +1,16 @@
-from PIL import Image, ImageFont, ImageDraw
 from typing import Tuple
 
+from PIL import Image, ImageDraw, ImageFont
 
-def fill_text_to_image(image: Image,
-                       text: str,
-                       font: ImageFont,
-                       textsize: int,
-                       box: list,
-                       text_color: Tuple[int, int, int] = (0, 0, 0),
-    ): 
+
+def fill_text_to_image(
+    image: Image,
+    text: str,
+    font: ImageFont,
+    textsize: int,
+    box: list,
+    text_color: Tuple[int, int, int] = (0, 0, 0),
+):
     """
     Fill the given text onto the image within the specified bounding box.
 
@@ -24,17 +26,17 @@ def fill_text_to_image(image: Image,
         Image: The modified image with the filled text.
 
     """
-    font_copy=font.font_variant(size=textsize)
+    font_copy = font.font_variant(size=textsize)
     # text_mask = Image.new("RGB", (crop_width, img_height), color = bg_color)
     draw = ImageDraw.Draw(image)
-        
+
     # text_y=abs(img_height-crop_height)
     draw.text((int(box[0]), int(box[1])), text, font=font_copy, fill=text_color)
-    
+
     return image
 
 
-def draw_rectangle(image, x1, y1, x2, y2, line_width = 2):
+def draw_rectangle(image, x1, y1, x2, y2, line_width=2):
     """
     Draw a rectangle on the image with the specified coordinates.
 
@@ -50,12 +52,12 @@ def draw_rectangle(image, x1, y1, x2, y2, line_width = 2):
         Image: The modified image with the drawn rectangle.
 
     """
-    
+
     # Create an ImageDraw object
     draw = ImageDraw.Draw(image)
 
     # Draw the rectangle
     rectangle = [(x1, y1), (x2, y2)]
-    draw.rectangle(rectangle, outline='red', width=line_width)
+    draw.rectangle(rectangle, outline="red", width=line_width)
 
     return image

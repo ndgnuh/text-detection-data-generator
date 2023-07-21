@@ -1,4 +1,5 @@
 import random
+
 import cv2
 import numpy as np
 
@@ -10,7 +11,8 @@ def generate_random_color():
     b = random.randint(0, 255)
     return (r, g, b)
 
-def check_suitability(background_image, text_color, max_diff = 150):
+
+def check_suitability(background_image, text_color, max_diff=150):
     """
     Check the suitability of the text color for the given background image.
 
@@ -40,7 +42,8 @@ def check_suitability(background_image, text_color, max_diff = 150):
     else:
         return True
 
-def gen_text_color(background_image: np.ndarray, max_diff = 150):
+
+def gen_text_color(background_image: np.ndarray, max_diff=150):
     """
     Generate a suitable text color for the given background image.
 
@@ -56,16 +59,17 @@ def gen_text_color(background_image: np.ndarray, max_diff = 150):
     count_loop = 0
     while True:
         if count_loop > 1500:
-            # raise ValueError("Can't find suitable text color") 
+            # raise ValueError("Can't find suitable text color")
             return None
 
         text_color = generate_random_color()
-        if check_suitability(background_image, text_color, max_diff = max_diff):
+        if check_suitability(background_image, text_color, max_diff=max_diff):
             return text_color
         else:
-            count_loop+=1
+            count_loop += 1
 
-def gen_text_color_v2(bg_img: np.ndarray, min_text_bg_rate = 4.5, max_loop = 1000):
+
+def gen_text_color_v2(bg_img: np.ndarray, min_text_bg_rate=4.5, max_loop=1000):
     """
     Generate a suitable text color for the given background image using an alternative method.
 
@@ -79,27 +83,31 @@ def gen_text_color_v2(bg_img: np.ndarray, min_text_bg_rate = 4.5, max_loop = 100
 
     """
     mean_color = cv2.mean(bg_img)
-    r, g, b = mean_color[2]/255, mean_color[1]/255, mean_color[0]/255
+    r, g, b = mean_color[2] / 255, mean_color[1] / 255, mean_color[0] / 255
     # Sinh màu ngẫu nhiên
     text1_r = random.uniform(0, 1)
     text1_g = random.uniform(0, 1)
     text1_b = random.uniform(0, 1)
-    
+
     # Tính độ khác nhau so với bg_color
-    contrast1 = (0.299 * r + 0.587 * g + 0.114 * b + 0.05) / (0.299 * text1_r + 0.587 * text1_g + 0.114 * text1_b + 0.05)
-    
+    contrast1 = (0.299 * r + 0.587 * g + 0.114 * b + 0.05) / (
+        0.299 * text1_r + 0.587 * text1_g + 0.114 * text1_b + 0.05
+    )
+
     # Nếu chưa đủ khác, thực hiện sinh lại
     count = 0
     while contrast1 < min_text_bg_rate:
-        count+=1
+        count += 1
         if count > max_loop:
-            # raise ValueError("Can't find suitable text color") 
+            # raise ValueError("Can't find suitable text color")
             return None
         # print("count: ",count, ". contrast1: ", contrast1)
         text1_r = random.uniform(0, 1)
         text1_g = random.uniform(0, 1)
         text1_b = random.uniform(0, 1)
-        contrast1 = (0.299 * r + 0.587 * g + 0.114 * b + 0.05) / (0.299 * text1_r + 0.587 * text1_g + 0.114 * text1_b + 0.05)
+        contrast1 = (0.299 * r + 0.587 * g + 0.114 * b + 0.05) / (
+            0.299 * text1_r + 0.587 * text1_g + 0.114 * text1_b + 0.05
+        )
 
-    new_color=(int(text1_r*255), int(text1_g*255), int(text1_b*255))
+    new_color = (int(text1_r * 255), int(text1_g * 255), int(text1_b * 255))
     return new_color
