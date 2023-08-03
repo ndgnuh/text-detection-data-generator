@@ -7,7 +7,7 @@ from PIL import ImageFont
 from torchvision import ops
 
 
-def gen_imgInteval(image_in: np.ndarray):
+def gen_img_integral(image_in: np.ndarray):
     """
     Generate the integral image of the input image.
 
@@ -180,27 +180,31 @@ def random_multi_boxes(
     return boxes_dict_list
 
 
-def random_roi(
-    image_size,
-    scale=(0.05, 0.5),
-    ratio=(0.5, 0.83),
-):
+def select(value):
+    if isinstance(value, tuple):
+        return random.uniform(*value)
+    elif isinstance(value, list):
+        return random.choice(value)
+    else:
+        return value
+
+
+def random_roi(image_size, scale, ratio):
     """
     Generate a random rectangular region of interest (ROI) within the specified image size.
 
     Args:
         image_size (tuple): The size of the image as a tuple (width, height).
-        scale (tuple): The scale range for the ROI. Default is (0.05, 0.5).
-        ratio (tuple): The aspect ratio range for the ROI. Default is (0.5, 0.83).
+        scale (tuple, list, float): The scale range for the ROI.
+        ratio (tuple, list, float): The aspect ratio range for the ROI.
 
     Returns:
         tuple: The ROI coordinates as a tuple (x1, y1, x2, y2).
 
     """
     # Gen random a rectangle box on image
-    # SR
-    scale = random.uniform(*scale)
-    ratio = random.uniform(*ratio)
+    scale = select(scale)
+    ratio = select(ratio)
 
     # Template size
     W, H = image_size
@@ -212,10 +216,23 @@ def random_roi(
     y1 = random.uniform(0, H - h)
     x2 = min(x1 + w, W - 1)
     y2 = min(y1 + h, H - 1)
+    x1 = max(x1, 0)
+    y1 = max(y1, 0)
+
+    # To int
+    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
     return x1, y1, x2, y2
 
 
-def random_multi_roi(size, n, scale, ratio):
+def random_multi_roi(
+    integral,
+    num_rois: int,
+    scales,
+    ratios,
+    iou_threshold: float = 0,
+    smooth_threshold: float = 1,
+    border: int = 0,
+):
     """
     Generate random multiple rectangular regions of interest (ROIs) within the specified image size.
 
@@ -229,11 +246,49 @@ def random_multi_roi(size, n, scale, ratio):
         list: A list of tuples containing the ROI coordinates (x1, y1, x2, y2).
 
     """
-    # Gen random multi rectangle box on image
+    # Generate random multi rectangle box on image with
+    # given scale(s) and ratio(s)
+    H, W = integral.shape
+    scores = []
+    boxes = []
+    for i in range(num_rois):
+        box = random_roi((W, H), scales, ratios)
+        score = compute_score(integral, box)
+        if score > smooth_threshold:
+            continue
 
-    rois = torch.tensor([random_roi(size, scale, ratio) for _ in range(n)])
-    scores = torch.randn(rois.shape[0])
-    keep = ops.nms(rois, scores, 0)
+        x1, y1, x2, y2 = box
+        boxes.append((x1 - border, y1 - border, x2 + border, y2 + border))
+        scores.append(smooth_threshold - score)
 
-    rois = rois[keep].type(torch.long)
-    return rois.tolist()
+    boxes = torch.tensor(boxes, dtype=torch.float32)
+    scores = torch.tensor(scores, dtype=torch.float32)
+    keep = ops.nms(boxes, scores, iou_threshold)
+    boxes = boxes[keep]
+    boxes = boxes.type(torch.long).tolist()
+
+    boxes = [
+        (x1 + border, y1 + border, x2 - border, y2 - border)
+        for (x1, y1, x2, y2) in boxes
+    ]
+    return boxes
+
+
+def compute_integral(img):
+    kp_image = cv2.Canny(img, 50, 150) // 255
+    src_h, src_w = kp_image.shape[:2]
+    sum_arr = np.zeros((src_h, src_w), np.float32)
+    image_integral = cv2.integral(kp_image, sum_arr, cv2.CV_32FC1)
+    return image_integral
+
+
+def compute_score(integral, box):
+    x1, y1, x2, y2 = box
+    score = integral[y2, x2] + integral[y1, x1] - integral[y1, x2] - integral[y2, x1]
+    return score
+
+
+def get_random_font(paths, sizes):
+    font_path = select(paths)
+    font_size = select(sizes)
+    return ImageFont.truetype(font_path, font_size)
